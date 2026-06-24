@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCS Environnement — Inspection de chantier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --navy:#1B2A4A; --navy2:#23355C; --teal:#16A38C; --teal-dark:#0F8A76;
+  --bg:#F3F5F7; --card:#FFFFFF; --border:#E3E7EC; --border-2:#D7DCE2;
+  --ink:#1F2733; --ink-soft:#62707F;
+  --green-bg:#E3F6EA; --green-text:#16803C; --green-border:#16A34A;
+  --red-bg:#FCE8E8; --red-text:#C0291B; --red-border:#DC2626;
+  --gray-bg:#EEF0F3; --gray-text:#5B6878; --gray-border:#C7CDD4;
+  --yellow-bg:#FEF3C7; --yellow-text:#92660C;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.5;}
+h1,h2,h3{margin:0;}
+button{font-family:inherit;cursor:pointer;}
+input,textarea{font-family:inherit;}
+a{color:inherit;text-decoration:none;}
+
+/* ---------- Navbar ---------- */
+.nav{position:sticky;top:0;z-index:40;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:14px 32px;}
+.nav-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;}
+.nav-brand svg{width:26px;height:26px;color:var(--teal);}
+.nav-links{display:flex;gap:30px;font-weight:500;font-size:15px;}
+.nav-links a{opacity:.9;}
+.nav-links a:hover{opacity:1;text-decoration:underline;}
+.nav-cta{background:var(--teal);color:#fff;padding:9px 18px;border-radius:7px;font-weight:600;font-size:14px;border:none;}
+.nav-cta:hover{background:var(--teal-dark);}
+@media (max-width:760px){.nav-links{display:none;}}
+
+/* ---------- Hero ---------- */
+.hero{background:linear-gradient(180deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;padding:46px 32px 56px;text-align:center;}
+.hero h1{font-size:clamp(26px,3.4vw,38px);font-weight:800;margin-bottom:10px;}
+.hero p{color:#C9D4E4;max-width:560px;margin:0 auto;font-size:15.5px;}
+
+/* ---------- Services ---------- */
+.services{max-width:1080px;margin:-30px auto 0;padding:0 32px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+@media (max-width:800px){.services{grid-template-columns:1fr;}}
+.service-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:0 6px 18px -10px rgba(27,42,74,.25);}
+.service-card svg{width:26px;height:26px;color:var(--teal);margin-bottom:10px;}
+.service-card h3{font-size:15.5px;margin-bottom:4px;}
+.service-card p{font-size:13.5px;color:var(--ink-soft);margin:0;}
+
+/* ---------- Shell ---------- */
+.shell{max-width:1180px;margin:0 auto;padding:40px 32px 80px;}
+.shell h2.section-title{font-size:23px;font-weight:800;margin-bottom:6px;}
+.shell p.section-sub{color:var(--ink-soft);font-size:14.5px;margin:0 0 26px;}
+
+.grid{display:grid;grid-template-columns:1.55fr 1fr;gap:24px;align-items:start;}
+@media (max-width:900px){.grid{grid-template-columns:1fr;}}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 26px;margin-bottom:22px;}
+.card h3.card-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.card h3.card-title svg{width:19px;height:19px;color:var(--teal);}
+.card p.card-sub{color:var(--ink-soft);font-size:13.5px;margin:0 0 18px;}
+
+/* ---------- Informations generales ---------- */
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media (max-width:520px){.field-grid{grid-template-columns:1fr;}}
+.field label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:6px;}
+.field input{width:100%;padding:10px 12px;border:1.5px solid var(--border-2);border-radius:7px;font-size:14.5px;background:#fff;color:var(--ink);}
+.field input:focus-visible{outline:2.5px solid var(--teal);outline-offset:1px;}
+
+/* ---------- Type de chantier ---------- */
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media (max-width:600px){.type-grid{grid-template-columns:1fr;}}
+.type-card{border:1.5px solid var(--border-2);border-radius:10px;padding:18px;cursor:pointer;background:#fff;transition:border-color .15s,background .15s;}
+.type-card svg{width:26px;height:26px;color:var(--teal);margin-bottom:10px;}
+.type-card h4{font-size:15px;margin-bottom:3px;}
+.type-card p{font-size:12.5px;color:var(--ink-soft);margin:0;}
+.type-card.active{border-color:var(--teal);background:#F0FAF7;}
+
+/* ---------- Checklist ---------- */
+.cat{border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+.cat-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#FAFBFC;cursor:pointer;}
+.cat-head .left{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15.5px;}
+.cat-count{background:#DDF3EE;color:var(--teal-dark);font-size:12px;font-weight:700;padding:2px 9px;border-radius:20px;}
+.cat-chevron{transition:transform .2s;color:var(--ink-soft);}
+.cat.collapsed .cat-chevron{transform:rotate(-90deg);}
+.cat.collapsed .cat-body{display:none;}
+.cat-body{padding:4px 20px 6px;}
+
+.item{padding:18px 0;border-top:1px solid var(--border);}
+.item:first-child{border-top:none;}
+.item-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+.item-head h4{font-size:15px;font-weight:700;}
+.badge{font-size:11.5px;font-weight:700;padding:3px 11px;border-radius:20px;}
+.badge.none{background:var(--yellow-bg);color:var(--yellow-text);}
+.badge.conforme{background:var(--green-bg);color:var(--green-text);}
+.badge.non-conforme{background:var(--red-bg);color:var(--red-text);}
+.badge.na{background:var(--gray-bg);color:var(--gray-text);}
+.item-desc{font-size:13.5px;color:var(--ink-soft);max-width:560px;margin-bottom:12px;}
+.item-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.btn-status{display:flex;align-items:center;gap:6px;border:1.5px solid var(--border-2);background:#fff;color:var(--ink-soft);font-size:13.5px;font-weight:600;padding:8px 14px;border-radius:7px;}
+.btn-status svg{width:15px;height:15px;}
+.btn-status:hover{border-color:var(--ink-soft);}
+.btn-status.sel-conforme{background:var(--green-bg);border-color:var(--green-border);color:var(--green-text);}
+.btn-status.sel-non-conforme{background:var(--red-bg);border-color:var(--red-border);color:var(--red-text);}
+.btn-status.sel-na{background:var(--gray-bg);border-color:var(--gray-border);color:var(--gray-text);}
+.item-note{margin-top:10px;background:#FCFAF2;border:1px solid #F0E6C0;border-radius:7px;padding:10px 13px;font-size:13px;color:#5C4A12;}
+.item-note b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#92660C;margin-bottom:3px;}
+.item-epi-summary{margin-top:10px;background:#F0FAF7;border:1px solid #BFE6DC;border-radius:7px;padding:10px 13px;font-size:13px;color:#0F5645;}
+.item-epi-summary b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--teal-dark);margin-bottom:3px;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{position:sticky;top:84px;}
+.gauge-big{font-size:46px;font-weight:800;text-align:center;font-family:'IBM Plex Mono',monospace;}
+.gauge-label{text-align:center;color:var(--ink-soft);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:-4px;margin-bottom:14px;}
+.gauge-track{height:9px;border-radius:5px;background:var(--border);overflow:hidden;margin-bottom:6px;}
+.gauge-fill{height:100%;background:var(--teal);border-radius:5px;transition:width .5s ease;}
+.gauge-ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);margin-bottom:20px;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.stat-box{border-radius:9px;padding:14px 0;text-align:center;}
+.stat-box .num{font-size:26px;font-weight:800;font-family:'IBM Plex Mono',monospace;}
+.stat-box .lbl{font-size:12px;color:var(--ink-soft);}
+.stat-conforme{background:var(--green-bg);} .stat-conforme .num{color:var(--green-text);}
+.stat-non{background:var(--red-bg);} .stat-non .num{color:var(--red-text);}
+.stat-na{background:var(--gray-bg);} .stat-na .num{color:var(--gray-text);}
+.stat-none{background:var(--yellow-bg);} .stat-none .num{color:var(--yellow-text);}
+
+.mini-info{font-size:13.5px;}
+.mini-info div{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--border);}
+.mini-info div:first-child{border-top:none;}
+.mini-info span.k{color:var(--ink-soft);}
+.mini-info span.v{font-weight:600;text-align:right;max-width:60%;}
+
+.progress-foot{font-size:13px;color:var(--ink-soft);margin-bottom:10px;text-align:center;}
+.btn-pdf{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--navy);color:#fff;border:none;padding:13px;border-radius:8px;font-weight:700;font-size:14.5px;}
+.btn-pdf svg{width:17px;height:17px;}
+.btn-pdf:disabled{background:var(--gray-bg);color:var(--gray-text);cursor:not-allowed;}
+.btn-pdf:not(:disabled):hover{background:var(--navy2);}
+.pdf-hint{font-size:12px;color:var(--ink-soft);text-align:center;margin-top:9px;}
+
+/* ---------- Modal ---------- */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,20,30,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:100;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:12px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;padding:26px 28px;}
+.modal.modal-wide{max-width:680px;}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.modal-head h3{font-size:18px;font-weight:800;}
+.modal-close{border:none;background:transparent;color:var(--ink-soft);font-size:20px;line-height:1;padding:2px;}
+.modal-sub{font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;}
+.modal textarea{width:100%;min-height:110px;border:1.5px solid var(--border-2);border-radius:8px;padding:11px 13px;font-size:14px;resize:vertical;}
+.modal textarea:focus-visible{outline:2.5px solid var(--teal);}
+.modal-error{color:var(--red-text);font-size:12.5px;min-height:16px;margin-top:6px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+.btn{padding:10px 18px;border-radius:7px;font-weight:600;font-size:13.5px;border:1.5px solid var(--border-2);background:#fff;color:var(--ink);}
+.btn:hover{border-color:var(--ink-soft);}
+.btn-primary{background:var(--navy);border-color:var(--navy);color:#fff;}
+.btn-primary:hover{background:var(--navy2);}
+
+/* EPI modal */
+.epi-effectif{display:flex;align-items:center;gap:14px;background:var(--navy);padding:12px 16px;border-radius:8px;margin-bottom:18px;}
+.epi-effectif label{flex:1;color:#fff;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.epi-effectif input{width:80px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;border:none;border-radius:6px;padding:6px;}
+.epi-row{display:grid;grid-template-columns:26px 1fr 78px 56px;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--border);}
+.epi-row:first-of-type{border-top:none;}
+.epi-row svg{width:21px;height:21px;color:var(--ink-soft);}
+.epi-row span.lbl{font-size:13.5px;font-weight:600;}
+.epi-row input{width:100%;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:14.5px;border:1.5px solid var(--border-2);border-radius:6px;padding:7px 3px;}
+.epi-row .pct{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:13.5px;text-align:right;}
+.epi-overall{margin-top:16px;padding-top:14px;border-top:1.5px solid var(--ink);}
+
+/* ---------- Footer ---------- */
+.footer{background:var(--navy);color:#C9D4E4;padding:34px 32px;font-size:13.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+.footer b{color:#fff;}
+
+
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 4 5v6c0 6 4 9.5 8 11 4-1.5 8-5 8-11V5l-8-3z"/><path d="M9 12l2.2 2.2L15.5 9.5"/></svg>
+    TCS Environnement
+  </div>
+  <div class="nav-links">
+    <a href="#accueil">Accueil</a>
+    <a href="#services">Services</a>
+    <a href="#inspection">Inspection</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <button class="nav-cta" type="button">Se Connecter</button>
+</nav>
+
+<header class="hero" id="accueil">
+  <h1>Inspection HSE de chantier</h1>
+  <p>Évaluez la conformité sécurité, EPI et environnementale de vos chantiers, et générez un rapport PDF complet en quelques minutes.</p>
+</header>
+
+<section class="services" id="services">
+  <div class="service-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 16.5c0-5.5 4-9.5 9-9.5s9 4 9 9.5"/><path d="M2.5 16.5h19"/></svg>
+    <h3>Contrôle EPI</h3>
+    <p>Suivi du port des équipements de protection par travailleur, avec taux de conformité automatique.</p>
+  </div>
+  <div class="service-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    <h3>Inspection structurée</h3>
+    <p>Checklists adaptées au type de chantier : routier / linéaire ou bâtiment / génie civil.</p>
+  </div>
+  <div class="service-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4"/></svg>
+    <h3>Rapport PDF</h3>
+    <p>Export d'un rapport complet : informations, points contrôlés, observations et taux de conformité.</p>
+  </div>
+</section>
+
+<main class="shell" id="inspection">
+
+  <div class="card">
+    <h3 class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h4"/></svg> Informations générales</h3>
+    <p class="card-sub">Renseignez les informations du chantier et de l'inspection.</p>
+    <div class="field-grid">
+      <div class="field"><label for="g-nom">Nom du chantier</label><input id="g-nom" placeholder="Ex : Extension Autoroute A7"></div>
+      <div class="field"><label for="g-loc">Localisation</label><input id="g-loc" placeholder="Ex : Lyon, PK 245"></div>
+      <div class="field"><label for="g-date">Date d'inspection</label><input id="g-date" type="date"></div>
+      <div class="field"><label for="g-insp">Inspecteur</label><input id="g-insp" placeholder="Ex : M. Dupont"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9.5 12 4l9 5.5"/><path d="M5 9.5V20h14V9.5"/></svg> Type de chantier</h3>
+    <p class="card-sub">Sélectionnez le type de chantier pour afficher la checklist adaptée.</p>
+    <div class="type-grid" id="type-grid"></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <h2 class="section-title">Checklist d'inspection</h2>
+      <p class="section-sub">Évaluez chaque point de contrôle selon son statut de conformité.</p>
+      <div id="categories"></div>
+    </div>
+
+    <div class="sidebar">
+      <div class="card">
+        <h3 class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4"/></svg> Résumé de l'inspection</h3>
+        <div class="gauge-big" id="overall-pct">100%</div>
+        <div class="gauge-label">Taux de conformité</div>
+        <div class="gauge-track"><div class="gauge-fill" id="overall-bar" style="width:100%"></div></div>
+        <div class="gauge-ticks"><span>0%</span><span>50%</span><span>100%</span></div>
+
+        <div class="stat-grid">
+          <div class="stat-box stat-conforme"><div class="num" id="stat-conforme">0</div><div class="lbl">Conformes</div></div>
+          <div class="stat-box stat-non"><div class="num" id="stat-non">0</div><div class="lbl">Non-conformes</div></div>
+          <div class="stat-box stat-na"><div class="num" id="stat-na">0</div><div class="lbl">N/A</div></div>
+          <div class="stat-box stat-none"><div class="num" id="stat-none">7</div><div class="lbl">Non évalués</div></div>
+        </div>
+
+        <h3 class="card-title" style="margin-top:4px;">Informations du chantier</h3>
+        <div class="mini-info">
+          <div><span class="k">Nom</span><span class="v" id="mi-nom">—</span></div>
+          <div><span class="k">Localisation</span><span class="v" id="mi-loc">—</span></div>
+          <div><span class="k">Date</span><span class="v" id="mi-date">—</span></div>
+          <div><span class="k">Inspecteur</span><span class="v" id="mi-insp">—</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="progress-foot" id="progress-foot">0 / 8 points évalués</div>
+        <button class="btn-pdf" id="pdf-btn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v13"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
+          Générer le rapport PDF
+        </button>
+        <div class="pdf-hint" id="pdf-hint">Veuillez évaluer tous les points de contrôle pour générer le PDF.</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="footer" id="contact">
+  <div><b>TCS Environnement</b> — Inspection HSE de chantier</div>
+  <div>contact@tcs-environnement.fr · 01 23 45 67 89</div>
+</footer>
+
+<!-- Modal observation -->
+<div class="modal-overlay" id="obs-overlay">
+  <div class="modal">
+    <div class="modal-head"><h3 id="obs-title">Observation</h3><button class="modal-close" id="obs-close">&times;</button></div>
+    <p class="modal-sub">Décrivez l'écart constaté pour ce point de contrôle. Cette observation apparaîtra dans le rapport PDF.</p>
+    <textarea id="obs-text" placeholder="Ex : 3 ouvriers sans casque relevés côté nord du chantier à 10h15."></textarea>
+    <div class="modal-error" id="obs-error"></div>
+    <div class="modal-actions">
+      <button class="btn" id="obs-cancel">Annuler</button>
+      <button class="btn btn-primary" id="obs-save">Valider</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal EPI -->
+<div class="modal-overlay" id="epi-overlay">
+  <div class="modal modal-wide">
+    <div class="modal-head"><h3>Contrôle EPI détaillé</h3><button class="modal-close" id="epi-close">&times;</button></div>
+    <p class="modal-sub">Indiquez l'effectif présent, puis le nombre de travailleurs ne portant pas chaque équipement.</p>
+
+    <div class="epi-effectif">
+      <label for="epi-effectif">Effectif total sur site</label>
+      <input id="epi-effectif" type="number" min="0" value="0">
+    </div>
+
+    <div id="epi-rows"></div>
+
+    <div class="epi-overall">
+      <div class="gauge-big" id="epi-overall-pct" style="font-size:34px;">—</div>
+      <div class="gauge-label">Conformité EPI</div>
+      <div class="gauge-track"><div class="gauge-fill" id="epi-overall-bar" style="width:0%"></div></div>
+    </div>
+    <div class="modal-error" id="epi-error"></div>
+
+    <div class="modal-actions">
+      <button class="btn" id="epi-cancel">Annuler</button>
+      <button class="btn btn-primary" id="epi-save">Valider</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== ICONS ===================== */
+const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>';
+const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>';
+const ICON_MINUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>';
+const ICON_CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M6 9l6 6 6-6"/></svg>';
+const ICON_ROAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 21 9 3h6l4 18"/><path d="M12 3v18" stroke-dasharray="2 3"/></svg>';
+const ICON_BUILDING = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="8" width="7" height="13"/><rect x="12" y="3" width="7" height="18"/><path d="M8 12h1"/><path d="M8 16h1"/><path d="M15 7h1"/><path d="M15 11h1"/><path d="M15 15h1"/></svg>';
+const EPI_ICONS = {
+  casque:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 16.5c0-5.5 4-9.5 9-9.5s9 4 9 9.5"/><path d="M2.5 16.5h19"/><path d="M2.5 16.5v1.7a1.3 1.3 0 0 0 1.3 1.3h16.4a1.3 1.3 0 0 0 1.3-1.3v-1.7"/></svg>',
+  gilet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 3.5 12 7l4-3.5"/><path d="M8 3.5 5 6v14.5h5"/><path d="M16 3.5 19 6v14.5h-5"/><path d="M9 20.5V9.5"/><path d="M15 20.5V9.5"/></svg>',
+  gants:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M7 10V5.5a1.4 1.4 0 0 1 2.8 0V10"/><path d="M9.8 9.5V4.3a1.4 1.4 0 0 1 2.8 0V9.5"/><path d="M12.6 9.5V5a1.4 1.4 0 0 1 2.8 0v6"/><path d="M15.4 11V7a1.4 1.4 0 0 1 2.8 0v7.5c0 3.3-2.3 6-6 6H10c-2.2 0-3.5-1.4-4.4-3L4 13.7c-.5-1 .4-2.2 1.5-1.8l1.5.6"/></svg>',
+  chaussures:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 19.5h17.5a1 1 0 0 0 1-1.2l-.4-1.7a2 2 0 0 0-1-1.3l-5.4-2.9-1-2.7a1.4 1.4 0 0 0-2-.7l-1 .6a3 3 0 0 0-1.4 2.6v3.4L4.2 17a2 2 0 0 0-1.2 1.8z"/></svg>',
+  lunettes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="6.3" cy="13" r="3.4"/><circle cx="17.7" cy="13" r="3.4"/><path d="M9.7 12.2h4.6"/></svg>'
+};
+const EPI_CATS = [
+  {key:'casque',label:'Casque de protection'},
+  {key:'gilet',label:'Gilet haute visibilité'},
+  {key:'gants',label:'Gants de protection'},
+  {key:'chaussures',label:'Chaussures de sécurité'},
+  {key:'lunettes',label:'Lunettes de protection'}
+];
+
+/* ===================== DATA ===================== */
+const CHANTIER_TYPES = {
+  routier:{
+    label:'Chantier Routier / Linéaire',
+    desc:'Routes, autoroutes, réseaux souterrains, voies ferrées',
+    icon:ICON_ROAD,
+    cas:[
+      {id:'signal-temp', title:'Signalisation temporaire', desc:"Manque de panneaux de prescription, cônes K5c, feux temporaires ou balises J1 conformes à la norme NF P 98-351."},
+      {id:'blindage', title:'Blindage des tranchées', desc:"Fouilles et tranchées de profondeur supérieure à 1,30 m sans blindage, étaiement ni talutage suffisant."},
+      {id:'poussieres', title:'Gestion des poussières', desc:"Vol de poussières important lors des travaux de démolition ou de sciage, pistes non arrosées régulièrement."}
+    ]
+  },
+  batiment:{
+    label:'Chantier Bâtiment / Génie Civil',
+    desc:'Construction, rénovation, ouvrages d’art, bâtiments industriels',
+    icon:ICON_BUILDING,
+    cas:[
+      {id:'chute-hauteur', title:'Protection contre les chutes de hauteur', desc:"Absence de garde-corps, trémies non protégées, travaux en hauteur sans harnais ni ligne de vie."},
+      {id:'levage', title:'Stabilité des engins de levage', desc:"Grue ou nacelle sur sol non stabilisé, charges non arrimées, zone de levage non balisée."},
+      {id:'bruit', title:'Gestion du bruit', desc:"Niveaux sonores excessifs vis-à-vis du voisinage, absence de plages horaires définies pour les travaux bruyants."}
+    ]
+  }
+};
+
+const BASE_CATEGORIES = [
+  {id:'securite', label:'Sécurité et Santé (EPI & Signalisation)', items:[
+    {id:'epi', title:'Non-port des EPI', desc:"Casque, chaussures de sécurité, gilet haute visibilité non portés par l'ensemble du personnel présent sur le chantier.", special:'epi'},
+    {id:'balisage', title:'Absence de balisage', desc:"Limites du chantier non définies ou clôturées. Absence de panneaux de signalisation aux points d'accès."},
+    {id:'electrique', title:'Risques électriques', desc:"Câbles dénudés, armoires électriques ouvertes, installations exposées aux intempéries sans protection adaptée."}
+  ]},
+  {id:'environnement', label:'Gestion Environnementale Globale', items:[
+    {id:'dechets', title:'Gestion des déchets', desc:"Accumulation excessive de déchets, absence de tri sélectif, pas d'évacuation régulière vers une filière agréée."},
+    {id:'stockage', title:'Stockage produits dangereux', desc:"Produits chimiques, hydrocarbures ou peintures stockés sans bac de rétention, risque de pollution des sols et eaux."}
+  ]}
+];
+
+/* ===================== STATE ===================== */
+let selectedType = 'routier';
+let itemStates = {}; // id -> {status:'none'|'conforme'|'non-conforme'|'na', observation:'', epi:null}
+let collapsed = {securite:false, environnement:false, cas:false};
+let currentObsItem = null;
+let currentEpiItem = null;
+
+function allCategories(){
+  const cas = CHANTIER_TYPES[selectedType];
+  return [...BASE_CATEGORIES, {id:'cas', label:'Cas Particulier : '+cas.label, items:cas.cas}];
+}
+function allItems(){
+  return allCategories().flatMap(c=>c.items);
+}
+function getState(id){
+  if(!itemStates[id]) itemStates[id] = {status:'none', observation:'', epi:null};
+  return itemStates[id];
+}
+
+/* ===================== RENDER: type cards ===================== */
+function renderTypeCards(){
+  const wrap = document.getElementById('type-grid');
+  wrap.innerHTML = '';
+  Object.entries(CHANTIER_TYPES).forEach(([key,t])=>{
+    const div = document.createElement('div');
+    div.className = 'type-card'+(selectedType===key?' active':'');
+    div.innerHTML = t.icon + '<h4>'+t.label+'</h4><p>'+t.desc+'</p>';
+    div.addEventListener('click', ()=>{ selectedType = key; renderTypeCards(); renderCategories(); });
+    wrap.appendChild(div);
+  });
+}
+
+/* ===================== RENDER: checklist ===================== */
+function statusBadge(status){
+  const map = {none:['none','Non évalué'], conforme:['conforme','Conforme'], 'non-conforme':['non-conforme','Non-conforme'], na:['na','N/A']};
+  const [cls,txt] = map[status];
+  return '<span class="badge '+cls+'">'+txt+'</span>';
+}
+
+function renderCategories(){
+  const wrap = document.getElementById('categories');
+  wrap.innerHTML = '';
+  allCategories().forEach(cat=>{
+    const catDiv = document.createElement('div');
+    catDiv.className = 'cat'+(collapsed[cat.id]?' collapsed':'');
+    catDiv.innerHTML = `
+      <div class="cat-head" data-cat="${cat.id}">
+        <div class="left">${cat.label} <span class="cat-count">${cat.items.length}</span></div>
+        <span class="cat-chevron">${ICON_CHEVRON}</span>
+      </div>
+      <div class="cat-body"></div>
+    `;
+    const body = catDiv.querySelector('.cat-body');
+    cat.items.forEach(item=>{
+      const st = getState(item.id);
+      const row = document.createElement('div');
+      row.className = 'item';
+      let extra = '';
+      if(st.status==='non-conforme' && item.special!=='epi' && st.observation){
+        extra = `<div class="item-note"><b>Observation</b>${escapeHtml(st.observation)}</div>`;
+      }
+      if(item.special==='epi' && st.epi){
+        extra = `<div class="item-epi-summary"><b>Détail EPI</b>Effectif ${st.epi.effectif} · Conformité ${st.epi.overall}%</div>`;
+      }
+      row.innerHTML = `
+        <div class="item-head"><h4>${item.title}</h4>${statusBadge(st.status)}</div>
+        <div class="item-desc">${item.desc}</div>
+        <div class="item-actions">
+          <button class="btn-status act-conforme ${st.status==='conforme'?'sel-conforme':''}" data-item="${item.id}">${ICON_CHECK} Conforme</button>
+          <button class="btn-status act-non ${st.status==='non-conforme'?'sel-non-conforme':''}" data-item="${item.id}">${ICON_X} Non-conforme</button>
+          <button class="btn-status act-na ${st.status==='na'?'sel-na':''}" data-item="${item.id}">${ICON_MINUS} N/A</button>
+        </div>
+        ${extra}
+      `;
+      row.querySelector('.act-conforme').addEventListener('click', ()=>setStatus(item,'conforme'));
+      row.querySelector('.act-non').addEventListener('click', ()=>setStatus(item,'non-conforme'));
+      row.querySelector('.act-na').addEventListener('click', ()=>setStatus(item,'na'));
+      body.appendChild(row);
+    });
+    catDiv.querySelector('.cat-head').addEventListener('click', ()=>{
+      collapsed[cat.id] = !collapsed[cat.id];
+      renderCategories();
+    });
+    wrap.appendChild(catDiv);
+  });
+  updateSummary();
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function setStatus(item, status){
+  const st = getState(item.id);
+  if(status==='non-conforme' && item.special==='epi'){
+    openEpiModal(item);
+    return;
+  }
+  if(status==='non-conforme'){
+    openObsModal(item);
+    return;
+  }
+  st.status = status;
+  st.observation = '';
+  renderCategories();
+}
+
+/* ===================== Observation modal ===================== */
+function openObsModal(item){
+  currentObsItem = item;
+  document.getElementById('obs-title').textContent = 'Observation — '+item.title;
+  document.getElementById('obs-text').value = getState(item.id).observation || '';
+  document.getElementById('obs-error').textContent = '';
+  document.getElementById('obs-overlay').classList.add('open');
+  document.getElementById('obs-text').focus();
+}
+function closeObsModal(){ document.getElementById('obs-overlay').classList.remove('open'); currentObsItem = null; }
+document.getElementById('obs-close').addEventListener('click', closeObsModal);
+document.getElementById('obs-cancel').addEventListener('click', closeObsModal);
+document.getElementById('obs-save').addEventListener('click', ()=>{
+  const text = document.getElementById('obs-text').value.trim();
+  if(!text){
+    document.getElementById('obs-error').textContent = "Décrivez l'écart constaté avant de valider.";
+    return;
+  }
+  const st = getState(currentObsItem.id);
+  st.status = 'non-conforme';
+  st.observation = text;
+  closeObsModal();
+  renderCategories();
+});
+
+/* ===================== EPI modal ===================== */
+function openEpiModal(item){
+  currentEpiItem = item;
+  const existing = getState(item.id).epi;
+  document.getElementById('epi-effectif').value = existing ? existing.effectif : 0;
+  const wrap = document.getElementById('epi-rows');
+  wrap.innerHTML = '';
+  EPI_CATS.forEach(c=>{
+    const prev = existing ? existing.perCategory.find(p=>p.key===c.key) : null;
+    const row = document.createElement('div');
+    row.className = 'epi-row';
+    row.innerHTML = `
+      ${EPI_ICONS[c.key]}
+      <span class="lbl">${c.label}</span>
+      <input type="number" min="0" value="${prev?prev.nonConformes:0}" data-epicat="${c.key}" aria-label="Nombre sans ${c.label}">
+      <span class="pct" data-epipct="${c.key}">—</span>
+    `;
+    wrap.appendChild(row);
+  });
+  document.getElementById('epi-error').textContent = '';
+  recalcEpiModal();
+  document.getElementById('epi-overlay').classList.add('open');
+}
+function closeEpiModal(){ document.getElementById('epi-overlay').classList.remove('open'); currentEpiItem = null; }
+document.getElementById('epi-close').addEventListener('click', closeEpiModal);
+document.getElementById('epi-cancel').addEventListener('click', closeEpiModal);
+
+function recalcEpiModal(){
+  const effectif = Math.max(0, parseInt(document.getElementById('epi-effectif').value||'0',10));
+  let sum = 0;
+  EPI_CATS.forEach(c=>{
+    const input = document.querySelector('[data-epicat="'+c.key+'"]');
+    let nc = Math.max(0, parseInt(input.value||'0',10));
+    if(effectif>0 && nc>effectif){ nc = effectif; input.value = effectif; }
+    const pct = effectif>0 ? Math.round(((effectif-nc)/effectif)*100) : 0;
+    sum += pct;
+    document.querySelector('[data-epipct="'+c.key+'"]').textContent = effectif>0 ? pct+'%' : '—';
+  });
+  const overall = effectif>0 ? Math.round(sum/EPI_CATS.length) : 0;
+  document.getElementById('epi-overall-pct').textContent = effectif>0 ? overall+'%' : '—';
+  document.getElementById('epi-overall-bar').style.width = (effectif>0?overall:0)+'%';
+  return {effectif, overall};
+}
+document.getElementById('epi-effectif').addEventListener('input', recalcEpiModal);
+document.getElementById('epi-rows').addEventListener('input', recalcEpiModal);
+
+document.getElementById('epi-save').addEventListener('click', ()=>{
+  const effectif = Math.max(0, parseInt(document.getElementById('epi-effectif').value||'0',10));
+  if(effectif<=0){
+    document.getElementById('epi-error').textContent = "Renseignez l'effectif total avant de valider.";
+    return;
+  }
+  const perCategory = EPI_CATS.map(c=>{
+    const input = document.querySelector('[data-epicat="'+c.key+'"]');
+    const nc = Math.max(0, parseInt(input.value||'0',10));
+    const pct = Math.round(((effectif-nc)/effectif)*100);
+    return {key:c.key, label:c.label, nonConformes:nc, pct};
+  });
+  const overall = Math.round(perCategory.reduce((a,c)=>a+c.pct,0)/perCategory.length);
+
+  const st = getState(currentEpiItem.id);
+  st.epi = {effectif, perCategory, overall};
+  st.status = overall===100 ? 'conforme' : 'non-conforme';
+  st.observation = '';
+  closeEpiModal();
+  renderCategories();
+});
+
+/* ===================== Summary ===================== */
+function updateSummary(){
+  const items = allItems();
+  let conforme=0, non=0, na=0, none=0;
+  items.forEach(i=>{
+    const s = getState(i.id).status;
+    if(s==='conforme') conforme++;
+    else if(s==='non-conforme') non++;
+    else if(s==='na') na++;
+    else none++;
+  });
+  const denom = conforme+non;
+  const pct = denom===0 ? 100 : Math.round((conforme/denom)*100);
+
+  document.getElementById('overall-pct').textContent = pct+'%';
+  document.getElementById('overall-bar').style.width = pct+'%';
+  document.getElementById('stat-conforme').textContent = conforme;
+  document.getElementById('stat-non').textContent = non;
+  document.getElementById('stat-na').textContent = na;
+  document.getElementById('stat-none').textContent = none;
+
+  const evaluated = conforme+non+na;
+  document.getElementById('progress-foot').textContent = evaluated+' / '+items.length+' points évalués';
+
+  const btn = document.getElementById('pdf-btn');
+  const hint = document.getElementById('pdf-hint');
+  if(evaluated===items.length){
+    btn.disabled = false;
+    hint.textContent = 'Rapport prêt à être généré.';
+  }else{
+    btn.disabled = true;
+    hint.textContent = 'Veuillez évaluer tous les points de contrôle pour générer le PDF.';
+  }
+
+  document.getElementById('mi-nom').textContent = document.getElementById('g-nom').value || '—';
+  document.getElementById('mi-loc').textContent = document.getElementById('g-loc').value || '—';
+  document.getElementById('mi-date').textContent = document.getElementById('g-date').value || '—';
+  document.getElementById('mi-insp').textContent = document.getElementById('g-insp').value || '—';
+}
+['g-nom','g-loc','g-date','g-insp'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updateSummary);
+});
+
+/* ===================== PDF export (vrai fichier téléchargeable) ===================== */
+function statusLabelOf(s){ return {none:'Non évalué', conforme:'Conforme', 'non-conforme':'Non-conforme', na:'N/A'}[s]; }
+
+function downloadPDF(){
+  if(!window.jspdf){
+    alert("La librairie de génération PDF n'a pas pu se charger (connexion internet bloquée ou page ouverte dans un aperçu restreint). Ouvrez ce fichier .html directement dans un onglet de navigateur normal (double-clic sur le fichier téléchargé) et réessayez.");
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'pt', format:'a4'});
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginX = 48;
+  let y = 56;
+
+  function ensureSpace(h){
+    if(y + h > pageH - 50){ doc.addPage(); y = 56; }
+  }
+  function wrapped(text, x, maxW, size, color, weight){
+    doc.setFontSize(size);
+    doc.setTextColor(color[0],color[1],color[2]);
+    doc.setFont('helvetica', weight||'normal');
+    const lines = doc.splitTextToSize(text, maxW);
+    lines.forEach(line=>{
+      ensureSpace(size*1.4);
+      doc.text(line, x, y);
+      y += size*1.4;
+    });
+    return lines.length;
+  }
+
+  const nom = document.getElementById('g-nom').value || '—';
+  const loc = document.getElementById('g-loc').value || '—';
+  const date = document.getElementById('g-date').value || '—';
+  const insp = document.getElementById('g-insp').value || '—';
+
+  const items = allItems();
+  let conforme=0,non=0,na=0;
+  items.forEach(i=>{
+    const s=getState(i.id).status;
+    if(s==='conforme')conforme++; else if(s==='non-conforme')non++; else if(s==='na')na++;
+  });
+  const denom=conforme+non;
+  const pct = denom===0?100:Math.round((conforme/denom)*100);
+
+  // Header band
+  doc.setFillColor(27,42,74);
+  doc.rect(0,0,pageW,70,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(18);
+  doc.text('TCS Environnement', marginX, 32);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(11);
+  doc.text("Rapport d'inspection HSE de chantier", marginX, 50);
+  doc.setFontSize(9.5);
+  doc.text('Généré le '+new Date().toLocaleDateString('fr-FR'), pageW-marginX, 32, {align:'right'});
+  y = 96;
+
+  // Infos générales
+  doc.setTextColor(31,39,51);
+  const infoRows = [
+    ['Nom du chantier', nom],
+    ['Localisation', loc],
+    ["Date d'inspection", date],
+    ['Inspecteur', insp],
+    ['Type de chantier', CHANTIER_TYPES[selectedType].label]
+  ];
+  infoRows.forEach(([k,v])=>{
+    ensureSpace(18);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text(k+' :', marginX, y);
+    doc.setFont('helvetica','normal');
+    doc.text(String(v), marginX+150, y);
+    y += 18;
+  });
+  y += 10;
+
+  // Stat boxes
+  ensureSpace(54);
+  const boxes = [
+    {label:'Conformes', val:conforme, bg:[227,246,234], fg:[22,128,60]},
+    {label:'Non-conformes', val:non, bg:[252,232,232], fg:[192,41,27]},
+    {label:'N/A', val:na, bg:[238,240,243], fg:[91,104,120]},
+    {label:'Conformité', val:pct+'%', bg:[27,42,74], fg:[255,255,255]}
+  ];
+  const boxW = (pageW - marginX*2 - 3*10)/4;
+  boxes.forEach((b,i)=>{
+    const x = marginX + i*(boxW+10);
+    doc.setFillColor(b.bg[0],b.bg[1],b.bg[2]);
+    doc.roundedRect(x, y, boxW, 54, 6, 6, 'F');
+    doc.setTextColor(b.fg[0],b.fg[1],b.fg[2]);
+    doc.setFont('helvetica','bold'); doc.setFontSize(17);
+    doc.text(String(b.val), x+boxW/2, y+26, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    doc.text(b.label, x+boxW/2, y+42, {align:'center'});
+  });
+  y += 76;
+
+  // Categories
+  allCategories().forEach(cat=>{
+    ensureSpace(26);
+    doc.setDrawColor(27,42,74);
+    doc.setLineWidth(1.1);
+    doc.line(marginX, y, pageW-marginX, y);
+    y += 16;
+    doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    doc.setTextColor(27,42,74);
+    doc.text(cat.label, marginX, y);
+    y += 16;
+
+    cat.items.forEach(item=>{
+      const st = getState(item.id);
+      ensureSpace(20);
+      doc.setFont('helvetica','bold'); doc.setFontSize(11);
+      doc.setTextColor(31,39,51);
+      doc.text(item.title, marginX, y);
+      const label = statusLabelOf(st.status);
+      const colors = {none:[146,102,12], conforme:[22,128,60], 'non-conforme':[192,41,27], na:[91,104,120]};
+      const c = colors[st.status];
+      doc.setTextColor(c[0],c[1],c[2]);
+      doc.text(label, pageW-marginX, y, {align:'right'});
+      y += 14;
+
+      wrapped(item.desc, marginX, pageW-marginX*2, 9.5, [98,112,127]);
+      y += 2;
+
+      if(item.special==='epi' && st.epi){
+        ensureSpace(16);
+        doc.setFillColor(240,250,247);
+        const boxH = 16 + st.epi.perCategory.length*13 + 6;
+        ensureSpace(boxH);
+        doc.roundedRect(marginX, y, pageW-marginX*2, boxH, 4, 4, 'F');
+        let iy = y+13;
+        doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+        doc.setTextColor(15,86,69);
+        doc.text('Détail EPI — Effectif : '+st.epi.effectif+'  ·  Conformité globale : '+st.epi.overall+'%', marginX+10, iy);
+        iy += 13;
+        doc.setFont('helvetica','normal');
+        st.epi.perCategory.forEach(c2=>{
+          doc.text('• '+c2.label+' : '+c2.nonConformes+' sans équipement ('+c2.pct+'% conforme)', marginX+10, iy);
+          iy += 13;
+        });
+        y += boxH + 8;
+      } else if(st.status==='non-conforme' && st.observation){
+        const obsLines = doc.splitTextToSize(st.observation, pageW-marginX*2-20);
+        const boxH = 16 + obsLines.length*12;
+        ensureSpace(boxH);
+        doc.setFillColor(252,250,242);
+        doc.roundedRect(marginX, y, pageW-marginX*2, boxH, 4, 4, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(9);
+        doc.setTextColor(146,102,12);
+        doc.text('OBSERVATION', marginX+10, y+12);
+        doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+        doc.setTextColor(60,48,12);
+        let oy = y+25;
+        obsLines.forEach(l=>{ doc.text(l, marginX+10, oy); oy += 12; });
+        y += boxH + 8;
+      } else {
+        y += 6;
+      }
+    });
+    y += 6;
+  });
+
+  const fileSafeName = (nom||'chantier').replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+  doc.save('rapport-inspection-'+fileSafeName+'.pdf');
+}
+
+document.getElementById('pdf-btn').addEventListener('click', downloadPDF);
+
+/* ===================== Init ===================== */
+document.getElementById('g-date').valueAsDate = new Date();
+renderTypeCards();
+renderCategories();
+</script>
+</body>
+</html>
